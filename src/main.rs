@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{cmp::Reverse, path::PathBuf};
 
 use askama::Template;
 use askama_web::WebTemplate;
@@ -11,6 +11,7 @@ use poem::{
     middleware::Tracing,
     web::{Path, StaticFileRequest, StaticFileResponse},
 };
+use wax::walk::Entry;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> std::io::Result<()> {
@@ -53,15 +54,16 @@ struct IndexPage {
 #[allow(non_snake_case)]
 async fn Index(BaseDir(base_dir): BaseDir) -> Result<IndexPage> {
     let glob = wax::Glob::new("*/760/remote/*/screenshots/*.(?i)jpg").unwrap();
-    let images = glob
+    let mut images = glob
         .walk(base_dir)
-        .map(|entry| {
-            entry
-                .map_err(InternalServerError)
-                .map(|e| e.to_candidate_path().to_string())
-        })
+        .map(|entry| entry.map_err(InternalServerError))
         .collect::<Result<Vec<_>>>()?;
-
+    images
+        .sort_by_cached_key(|entry| Reverse(entry.metadata().ok().and_then(|m| m.modified().ok())));
+    let images = images
+        .into_iter()
+        .map(|entry| entry.to_candidate_path().to_string())
+        .collect::<Vec<_>>();
     Ok(IndexPage { images })
 }
 
