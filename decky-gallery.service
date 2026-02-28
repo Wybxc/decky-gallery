@@ -1,0 +1,12 @@
+[Unit]
+Description=Decky Gallery web server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/.cargo/bin/decky-gallery -p 3000
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
