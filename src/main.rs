@@ -44,10 +44,15 @@ impl<'a> FromRequest<'a> for BaseDir {
     }
 }
 
+struct ImageEntry {
+    path: String,
+    thumbnail: String,
+}
+
 #[derive(Template, WebTemplate)]
 #[template(path = "index.html")]
 struct IndexPage {
-    images: Vec<String>,
+    images: Vec<ImageEntry>,
 }
 
 #[handler]
@@ -62,7 +67,12 @@ async fn Index(BaseDir(base_dir): BaseDir) -> Result<IndexPage> {
         .sort_by_cached_key(|entry| Reverse(entry.metadata().ok().and_then(|m| m.modified().ok())));
     let images = images
         .into_iter()
-        .map(|entry| entry.to_candidate_path().to_string())
+        .map(|entry| {
+            let path = entry.to_candidate_path().to_string();
+            let (folder, filename) = path.rsplit_once("/").unwrap();
+            let thumbnail = format!("{folder}/thumbnails/{filename}");
+            ImageEntry { path, thumbnail }
+        })
         .collect::<Vec<_>>();
     Ok(IndexPage { images })
 }

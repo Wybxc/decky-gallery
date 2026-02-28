@@ -42,8 +42,8 @@
   <body>
     <main>
       {% for image in images %}
-      <a href="/image/{{ image }}">
-        <img src="/image/{{ image }}" alt="Screenshot" loading="lazy" />
+      <a href="/image/{{ image.path }}">
+        <img src="/image/{{ image.thumbnail }}" alt="Screenshot" loading="lazy" />
       </a>
       {% endfor %}
     </main>
