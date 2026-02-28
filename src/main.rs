@@ -1,4 +1,7 @@
-use std::{cmp::Reverse, path::PathBuf};
+use std::{
+    cmp::Reverse,
+    path::{Component, PathBuf},
+};
 
 use argh::FromArgs;
 use askama::Template;
@@ -95,6 +98,24 @@ async fn Image(
     Path(path): Path<PathBuf>,
     request: StaticFileRequest,
 ) -> Result<StaticFileResponse> {
+    for component in path.components() {
+        match component {
+            Component::ParentDir | Component::Prefix(_) | Component::RootDir => {
+                return Err(Error::from_string("Invalid path", StatusCode::BAD_REQUEST));
+            }
+            Component::CurDir | Component::Normal(_) => {}
+        }
+    }
+    if !path
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("jpg"))
+    {
+        return Err(Error::from_string(
+            "Invalid file type",
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+
     let full_path = base_dir.join(path);
     Ok(request.create_response(full_path, true, false)?)
 }
