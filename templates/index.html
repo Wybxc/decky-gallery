@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Decky Gallery</title>
+  </head>
+  <body>
+    <main>
+      {% for image in images %}
+      <img src="/image/{{ image }}" />
+      {% endfor %}
+    </main>
+  </body>
+</html>

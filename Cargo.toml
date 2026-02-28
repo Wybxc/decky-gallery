@@ -1,0 +1,13 @@
+[package]
+name = "decky-gallery"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+askama = "0.15.4"
+askama_web = { version = "0.15.1", features = ["poem-3"] }
+poem = { version = "3.1.12", features = ["static-files"] }
+tokio = { version = "1.49.0", features = ["fs", "macros", "rt"] }
+tracing = "0.1.44"
+tracing-subscriber = "0.3.22"
+wax = "0.7.0"

@@ -1,0 +1,77 @@
+use std::path::PathBuf;
+
+use askama::Template;
+use askama_web::WebTemplate;
+use poem::{
+    EndpointExt, Error, FromRequest, Result, Route, Server,
+    error::InternalServerError,
+    get, handler,
+    http::StatusCode,
+    listener::TcpListener,
+    middleware::Tracing,
+    web::{Path, StaticFileRequest, StaticFileResponse},
+};
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> std::io::Result<()> {
+    tracing_subscriber::fmt::init();
+
+    let app = Route::new()
+        .at("/", get(Index))
+        .at("image/*path", get(Image))
+        .with(Tracing);
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
+        .run(app)
+        .await
+}
+
+struct BaseDir(PathBuf);
+
+impl<'a> FromRequest<'a> for BaseDir {
+    async fn from_request(req: &'a poem::Request, _body: &mut poem::RequestBody) -> Result<Self> {
+        Self::from_request_without_body(req).await
+    }
+
+    async fn from_request_without_body(_req: &'a poem::Request) -> Result<Self> {
+        match std::env::home_dir() {
+            Some(home) => Ok(BaseDir(home.join(".local/share/Steam/userdata"))),
+            None => Err(Error::from_string(
+                "Could not determine home directory",
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )),
+        }
+    }
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "index.html")]
+struct IndexPage {
+    images: Vec<String>,
+}
+
+#[handler]
+#[allow(non_snake_case)]
+async fn Index(BaseDir(base_dir): BaseDir) -> Result<IndexPage> {
+    let glob = wax::Glob::new("*/760/remote/*/screenshots/*.(?i)jpg").unwrap();
+    let images = glob
+        .walk(base_dir)
+        .map(|entry| {
+            entry
+                .map_err(InternalServerError)
+                .map(|e| e.to_candidate_path().to_string())
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(IndexPage { images })
+}
+
+#[handler]
+#[allow(non_snake_case)]
+async fn Image(
+    BaseDir(base_dir): BaseDir,
+    Path(path): Path<PathBuf>,
+    request: StaticFileRequest,
+) -> Result<StaticFileResponse> {
+    let full_path = base_dir.join(path);
+    Ok(request.create_response(full_path, true, false)?)
+}
