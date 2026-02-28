@@ -1,5 +1,6 @@
 use std::{cmp::Reverse, path::PathBuf};
 
+use argh::FromArgs;
 use askama::Template;
 use askama_web::WebTemplate;
 use poem::{
@@ -13,15 +14,25 @@ use poem::{
 };
 use wax::walk::Entry;
 
+#[derive(FromArgs)]
+/// A simple web server to view Steam screenshots.
+struct Args {
+    /// the port to listen on
+    #[argh(option, short = 'p', default = "3000")]
+    port: u16,
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
+
+    let args: Args = argh::from_env();
 
     let app = Route::new()
         .at("/", get(Index))
         .at("image/*path", get(Image))
         .with(Tracing);
-    Server::new(TcpListener::bind("0.0.0.0:3000"))
+    Server::new(TcpListener::bind(("0.0.0.0", args.port)))
         .run(app)
         .await
 }

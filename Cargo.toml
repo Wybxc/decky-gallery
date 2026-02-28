@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+argh = "0.1.14"
 askama = "0.15.4"
 askama_web = { version = "0.15.1", features = ["poem-3"] }
 poem = { version = "3.1.12", features = ["static-files"] }
